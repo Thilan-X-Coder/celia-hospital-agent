@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+myenv/
+.venv/
+
+# Secrets - NEVER commit
+.env
+
+# Generated outputs
+backend/data/*.db
+backend/invoices/*.pdf
+backend/reports/*.xlsx
+
+# Editor / OS files
+.vscode/
+Thumbs.db
