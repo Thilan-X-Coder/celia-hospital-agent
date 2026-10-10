@@ -100,3 +100,16 @@ def test_double_booking_is_impossible(test_db):            # FR8: the race situa
 
 def test_fake_reference_is_rejected(test_db):
     assert tools.confirm_booking("BK-FAKE123")["ok"] is False
+
+
+def test_prepare_rejects_booked_slot(test_db):
+    with get_conn() as conn:
+        booked_slot = conn.execute(
+            "SELECT slot_id FROM slots WHERE status = 'booked' LIMIT 1"
+        ).fetchone()[0]
+
+    result = tools.prepare_booking(booked_slot, **PATIENT)
+
+    assert result["ok"] is False
+    assert "already booked" in result["error"]
+    assert tools.PENDING_BOOKINGS == {}      # no booking reference was created
