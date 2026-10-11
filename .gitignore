@@ -13,6 +13,7 @@ myenv/
 backend/data/*.db
 backend/invoices/*.pdf
 backend/reports/*.xlsx
+.pytest_cache/
 
 # Editor / OS files
 .vscode/
