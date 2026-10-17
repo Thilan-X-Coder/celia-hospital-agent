@@ -14,6 +14,7 @@ backend/data/*.db
 backend/invoices/*.pdf
 backend/reports/*.xlsx
 .pytest_cache/
+backend/data/scenario_invoices/
 
 # Editor / OS files
 .vscode/

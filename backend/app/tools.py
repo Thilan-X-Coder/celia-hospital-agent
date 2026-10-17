@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta
 
 from app.db import get_conn
 from app.validators import validate_patient
+from app.invoice import build_invoice_pdf
 
 BOOKING_REF_TTL = timedelta(minutes=15)       # a prepared booking expires after 15 minutes
 PENDING_BOOKINGS: dict[str, dict] = {}        # booking_ref -> prepared booking (NOT saved yet)
@@ -253,12 +254,21 @@ def confirm_booking(booking_ref: str) -> dict:
         return {"ok": False, "error": "Sorry, that time slot was just taken. "
                                       "Please choose another slot."}
 
-    PENDING_BOOKINGS.pop(booking_ref, None)          # a reference can be used only once
-    # Phase 4: the invoice PDF will be created here.
+        PENDING_BOOKINGS.pop(booking_ref, None)          # a reference can be used only once
+
+    # The booking is saved. Now create the PDF (a file cannot be rolled back,
+    # so it is created AFTER the database commit).
+    invoice_ready = True
+    try:
+        build_invoice_pdf(invoice_no)
+    except Exception:
+        invoice_ready = False                        # never pretend the invoice exists
+
     return {
         "ok": True,
         "appointment_id": f"APT-{appointment_id:04d}",
         "invoice_no": invoice_no,
+        "invoice_ready": invoice_ready,
         "pdf_file": pdf_file,
         "doctor": slot["doctor_name"],
         "speciality": slot["speciality"],
@@ -268,7 +278,6 @@ def confirm_booking(booking_ref: str) -> dict:
         "patient_name": patient["full_name"],
         "patient_phone": patient["phone"],
     }
-
 
 # ---------------- Registry: tool name -> function (used by the agent in Phase 3) ----------------
 TOOL_FUNCTIONS = {
