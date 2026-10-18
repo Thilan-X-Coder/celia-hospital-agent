@@ -14,8 +14,16 @@ class HealthResponse(BaseModel):
 
 class HospitalResponse(BaseModel):
     name: str
+    address: str
     phone: str
+    email: Optional[str] = None
     emergency_number: str
+    opening_hours: Optional[str] = None
+    visiting_hours: Optional[str] = None
+    departments: Optional[str] = None
+    facilities: Optional[str] = None
+    what_to_bring: Optional[str] = None
+    payment_methods: Optional[str] = None
 
 
 class ChatStartResponse(BaseModel):

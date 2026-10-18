@@ -174,6 +174,9 @@ def test_health_and_hospital(client):
     assert r2.status_code == 200
     body = r2.json()
     assert body["name"] and body["phone"] and body["emergency_number"]
+    assert body["address"]
+    assert "Cardiology" in (body["departments"] or "")
+    assert "Pharmacy" in (body["facilities"] or "")
 
 
 # ---------------- regression: prompts.py must read the real hospital_info row ----------------

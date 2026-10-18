@@ -41,13 +41,8 @@ def health():
 
 @app.get("/api/hospital", response_model=HospitalResponse)
 def hospital():
-    result = get_hospital_info()
-    info = result["hospital"]
-    return HospitalResponse(
-        name=info["name"],
-        phone=info["phone"],
-        emergency_number=info["emergency_number"],
-    )
+    info = get_hospital_info()["hospital"]
+    return HospitalResponse(**info)
 
 
 @app.post("/api/chat/start", response_model=ChatStartResponse)

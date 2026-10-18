@@ -9,8 +9,16 @@ export type HealthResponse = {
 
 export type HospitalResponse = {
   name: string
+  address: string
   phone: string
+  email: string | null
   emergency_number: string
+  opening_hours: string | null
+  visiting_hours: string | null
+  departments: string | null
+  facilities: string | null
+  what_to_bring: string | null
+  payment_methods: string | null
 }
 
 export type ChatStartResponse = {
