@@ -9,7 +9,7 @@ from app.db import get_conn
 def _hospital_basics() -> tuple[str, str]:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT name, emergency_number FROM hospital_info WHERE id = 2").fetchone()
+            "SELECT name, emergency_number FROM hospital_info WHERE id = 1").fetchone()
     if row is None:
         return "our hospital", "the emergency number"
     return row["name"], row["emergency_number"]

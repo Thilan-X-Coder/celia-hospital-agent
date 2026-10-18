@@ -174,3 +174,10 @@ def test_health_and_hospital(client):
     assert r2.status_code == 200
     body = r2.json()
     assert body["name"] and body["phone"] and body["emergency_number"]
+
+
+# ---------------- regression: prompts.py must read the real hospital_info row ----------------
+def test_chat_start_greeting_uses_real_hospital_name(client):
+    r = client.post("/api/chat/start")
+    assert r.status_code == 200
+    assert "Lotus Care Hospital" in r.json()["greeting"]

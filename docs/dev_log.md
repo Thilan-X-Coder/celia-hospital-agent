@@ -102,3 +102,22 @@ DeepSeek-V4-Flash (best wording), gpt-oss-120b (fastest), Gemma 4 26B, Qwen3-4B 
 **Pending**
 - [ ] Final model comparison: Gemma (2 runs), DeepSeek, gpt-oss → choose primary + fallback
 - [ ] Prompt wording fixes (problem 9)
+
+
+
+## Phase 4 – Invoice PDF + Excel report
+**Built**
+- `invoice.py` – ReportLab PDF; data read from the database (single source of truth)
+- `reports.py` – openpyxl, append-only rows, auto-created file, styled header, filter
+- `summary.py` – LLM writes only the summary; rule-based fallback if the LLM fails
+- `conversation_end.py` – Excel row from real session data; topics from tools used
+- Goodbye detection in the CLI → conversation saved automatically
+
+**Decisions**
+- PDF created AFTER the database commit (a file cannot be rolled back); `invoice_ready` flag keeps Celia honest
+- Summarizer passed as a parameter → tests use a fake summary (fast, free, offline)
+- Tests write PDFs/Excel to temporary folders, never the real ones
+
+**Lessons**
+- ReportLab Paragraph needs escaping for & < > in user text
+- Windows cannot save an Excel file that is open → handle PermissionError
