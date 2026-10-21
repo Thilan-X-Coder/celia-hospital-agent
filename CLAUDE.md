@@ -31,6 +31,8 @@ Core principle: the LLM decides WHAT to do; Python code does it safely. The UI o
 8. The UI must NEVER decide a booking happened by reading Celia's text. Show the invoice card
    only when the API returns a real `invoice_url`.
 9. After each task, explain what you changed and why, in simple English (English is not my first language).
+10. Do not start or stop the dev servers (uvicorn, npm run dev). I run them in my own
+    terminals. You may run tests and builds (pytest, npm run build).
 
 ## Environment and commands (Windows, cmd)
 Backend (from `backend/`, venv folder is `myenv`):
@@ -50,11 +52,13 @@ Frontend (from `frontend/`):
 | GET | /api/health | – | {status, model} |
 | GET | /api/hospital | – | {name, phone, emergency_number} |
 | POST | /api/chat/start | – | {session_id, greeting} |
-| POST | /api/chat | {session_id, message} | {reply, booking, invoice_url, conversation_ended} |
+| POST | /api/chat | {session_id, message} | {reply, booking, invoice_url, conversation_ended, pending_booking} |
 | POST | /api/chat/end | {session_id} | {saved, summary} |
 | GET | /invoices/{file} | – | the PDF file |
 
 - `booking` is null, or {appointment_id, invoice_no, doctor, speciality, date, time, fee_lkr}
+- `pending_booking` is null, or {patient_name, doctor, speciality, date, time, fee_lkr, room} –
+  filled only on the turn `prepare_booking` succeeds, before the patient has confirmed
 - `invoice_url` is null unless a booking exists AND the PDF was created (invoice_ready true)
 - `invoice_url` is a relative path (e.g. `/invoices/INV-0004.pdf`); the frontend must prefix it with `VITE_API_URL` before using it
 - `conversation_ended` is true when the patient said goodbye (the summary is then saved to Excel)

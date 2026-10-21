@@ -13,3 +13,33 @@
 body {
   margin: 0;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes message-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-message-fade-in {
+    animation: message-fade-in 200ms ease-out;
+  }
+
+  @keyframes typing-bounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-4px);
+    }
+  }
+  .animate-typing-dot {
+    animation: typing-bounce 1s infinite;
+  }
+}

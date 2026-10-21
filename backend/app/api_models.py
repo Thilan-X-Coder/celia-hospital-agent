@@ -54,11 +54,22 @@ class BookingOut(BaseModel):
     fee_lkr: float
 
 
+class PendingBookingOut(BaseModel):
+    patient_name: str
+    doctor: str
+    speciality: str
+    date: str
+    time: str
+    fee_lkr: float
+    room: str
+
+
 class ChatResponse(BaseModel):
     reply: str
     booking: Optional[BookingOut] = None
     invoice_url: Optional[str] = None
     conversation_ended: bool
+    pending_booking: Optional[PendingBookingOut] = None
 
 
 class ChatEndRequest(BaseModel):

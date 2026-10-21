@@ -11,6 +11,7 @@ from datetime import datetime
 class Session:
     session_id: str = field(default_factory=lambda: "CONV-" + uuid.uuid4().hex[:6].upper())
     started_at: datetime = field(default_factory=datetime.now)
+    last_activity: datetime = field(default_factory=datetime.now)
     messages: list = field(default_factory=list)          # chat history (no system prompt)
     tools_used: list = field(default_factory=list)        # names of tools called, in order
     patient: dict | None = None                           # {"full_name", "phone"} once known

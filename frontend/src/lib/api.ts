@@ -36,11 +36,22 @@ export type BookingOut = {
   fee_lkr: number
 }
 
+export type PendingBookingOut = {
+  patient_name: string
+  doctor: string
+  speciality: string
+  date: string
+  time: string
+  fee_lkr: number
+  room: string
+}
+
 export type ChatResponse = {
   reply: string
   booking: BookingOut | null
   invoice_url: string | null
   conversation_ended: boolean
+  pending_booking: PendingBookingOut | null
 }
 
 export type ChatEndResponse = {
@@ -49,6 +60,18 @@ export type ChatEndResponse = {
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+/** Thrown by `request()` on a non-2xx response; carries the HTTP status so callers
+ * can tell "session gone (404)" apart from other failures. */
+export class ApiError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
 
 /** Turn the relative `invoice_url` from a chat response into a fetchable/openable URL. */
 export function getFullInvoiceUrl(invoiceUrl: string): string {
@@ -62,7 +85,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    throw new Error(body?.detail ?? `Request failed: ${res.status}`)
+    throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`)
   }
   return res.json()
 }

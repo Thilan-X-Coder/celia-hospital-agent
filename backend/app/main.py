@@ -2,6 +2,12 @@
 FastAPI layer for Celia. Only wires up existing app/ modules - the LLM/tool/DB
 logic itself lives in agent.py, tools.py, invoice.py, conversation_end.py, etc.
 """
+import asyncio
+import contextlib
+import threading
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -16,15 +22,77 @@ from app.api_models import (
     ChatStartResponse,
     HealthResponse,
     HospitalResponse,
+    PendingBookingOut,
 )
 from app.conversation_end import finish_conversation
 from app.llm_client import provider_info
 from app.prompts import greeting
-from app.sessions import create_session, get_session
+from app.sessions import SESSIONS, create_session, get_session
 from app.tools import get_hospital_info
+from app import tools
 import app.invoice as invoice
 
-app = FastAPI(title="Celia API")
+SWEEP_INTERVAL_SECONDS = 60
+BOOKED_IDLE_MINUTES = 3    # session.booking is not None
+IDLE_MINUTES = 10          # everything else (info-only or an unfinished booking)
+
+_finish_lock = threading.Lock()
+
+
+def _finish_with_lock(session) -> dict:
+    with _finish_lock:
+        return finish_conversation(session)
+
+
+def sweep_inactive_sessions(now: datetime) -> list[str]:
+    """Save any session that has gone quiet. Returns the session_ids it actually saved."""
+    saved = []
+    for session in list(SESSIONS.values()):
+        if session.summary_saved:
+            continue
+        if not any(m["role"] == "user" for m in session.messages):
+            continue
+        idle_minutes = BOOKED_IDLE_MINUTES if session.booking is not None else IDLE_MINUTES
+        cutoff = now - timedelta(minutes=idle_minutes)
+        if session.last_activity > cutoff:
+            continue
+        try:
+            result = _finish_with_lock(session)
+        except Exception:
+            continue  # one bad session must not stop the rest of the sweep
+        if result.get("ok"):
+            saved.append(session.session_id)
+    return saved
+
+
+def _save_all_unsaved():
+    for session in list(SESSIONS.values()):
+        if session.summary_saved:
+            continue
+        if any(m["role"] == "user" for m in session.messages):
+            try:
+                _finish_with_lock(session)
+            except Exception:
+                continue
+
+
+async def _sweeper_loop():
+    while True:
+        await asyncio.sleep(SWEEP_INTERVAL_SECONDS)
+        await asyncio.to_thread(sweep_inactive_sessions, datetime.now())
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_sweeper_loop())
+    yield
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+    await asyncio.to_thread(_save_all_unsaved)
+
+
+app = FastAPI(title="Celia API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,11 +127,12 @@ def chat(req: ChatRequest):
     if session is None:
         raise HTTPException(status_code=404, detail="Unknown session_id")
 
+    session.last_activity = datetime.now()
     prev_booking = session.booking
     reply = run_turn(session, req.message, debug=False)
     ended = is_goodbye(req.message)
     if ended:
-        finish_conversation(session)   # server guarantees the save; idempotent
+        _finish_with_lock(session)   # server guarantees the save; idempotent
 
     booking_out = None
     invoice_url = None
@@ -81,11 +150,28 @@ def chat(req: ChatRequest):
         if b.get("invoice_ready"):
             invoice_url = f"/invoices/{b['pdf_file']}"
 
+    pending_booking_out = None
+    for ref, turn in session.pending_refs.items():
+        if turn == session.turn_no:
+            data = tools.PENDING_BOOKINGS.get(ref)
+            if data:
+                slot, patient = data["slot"], data["patient"]
+                pending_booking_out = PendingBookingOut(
+                    patient_name=patient["full_name"],
+                    doctor=slot["doctor_name"],
+                    speciality=slot["speciality"],
+                    date=slot["slot_date"],
+                    time=slot["start_time"],
+                    fee_lkr=slot["consultation_fee"],
+                    room=f"Room {slot['room']}, {slot['floor']}",
+                )
+
     return ChatResponse(
         reply=reply,
         booking=booking_out,
         invoice_url=invoice_url,
         conversation_ended=ended,
+        pending_booking=pending_booking_out,
     )
 
 
@@ -94,7 +180,7 @@ def chat_end(req: ChatEndRequest):
     session = get_session(req.session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Unknown session_id")
-    result = finish_conversation(session)   # idempotent: safe even if already saved
+    result = _finish_with_lock(session)   # idempotent: safe even if already saved
     return ChatEndResponse(saved=result["ok"], summary=result.get("summary"))
 
 
