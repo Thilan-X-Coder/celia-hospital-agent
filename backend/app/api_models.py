@@ -79,3 +79,62 @@ class ChatEndRequest(BaseModel):
 class ChatEndResponse(BaseModel):
     saved: bool
     summary: Optional[str] = None
+
+
+# --- Admin dashboard models (read-only, password-protected) ---
+
+class AdminLoginRequest(BaseModel):
+    password: str
+
+
+class AdminLoginResponse(BaseModel):
+    token: str
+    expires_in_hours: int
+
+
+class AdminSummaryResponse(BaseModel):
+    total_conversations: int
+    booked_conversations: int
+    conversion_rate: float
+    todays_appointments: int
+    total_revenue_lkr: float
+    upcoming_appointments: int
+
+
+class AdminAppointmentOut(BaseModel):
+    appointment_id: str
+    patient_name: str
+    phone_masked: str
+    doctor: str
+    speciality: str
+    date: str
+    time: str
+    status: str
+    reason: Optional[str] = None
+    invoice_no: Optional[str] = None
+    invoice_url: Optional[str] = None
+
+
+class AdminConversationOut(BaseModel):
+    conversation_id: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    patient_name: Optional[str] = None
+    phone_masked: Optional[str] = None
+    topics: Optional[str] = None
+    booking_status: Optional[str] = None
+    doctor: Optional[str] = None
+    speciality: Optional[str] = None
+    appointment_date: Optional[str] = None
+    appointment_time: Optional[str] = None
+    invoice_no: Optional[str] = None
+    summary: Optional[str] = None
+
+
+class AdminDoctorOut(BaseModel):
+    doctor: str
+    speciality: str
+    fee: float
+    working_days: str
+    free_slots: int
+    booked_slots: int

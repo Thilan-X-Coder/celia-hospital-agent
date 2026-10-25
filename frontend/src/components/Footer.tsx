@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useHospitalInfo } from '../lib/useHospitalInfo'
 
 export default function Footer() {
@@ -11,6 +12,9 @@ export default function Footer() {
         <p className="font-semibold text-primary">{hospitalName}</p>
         <p>Demo project - dummy data only.</p>
         <p>&copy; {year}</p>
+        <Link to="/admin" className="text-xs text-primary/40 underline hover:text-primary/70">
+          Staff login
+        </Link>
       </div>
     </footer>
   )

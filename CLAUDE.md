@@ -15,6 +15,8 @@ validation, invoice PDF, and an Excel admin report. Dummy data only.
 - `backend/app/sessions.py` – in-memory conversation sessions
 - `backend/app/invoice.py` – invoice PDF (ReportLab)
 - `backend/app/reports.py`, `summary.py`, `conversation_end.py` – Excel report + summary
+- `backend/app/admin.py` – password-protected, read-only admin dashboard API (not in the
+  "do not modify" list below, since it is new)
 - `frontend/` – React + Vite + TypeScript + Tailwind chat UI (Phase 5, in progress)
 
 Core principle: the LLM decides WHAT to do; Python code does it safely. The UI only shows what the API returns.
@@ -33,6 +35,11 @@ Core principle: the LLM decides WHAT to do; Python code does it safely. The UI o
 9. After each task, explain what you changed and why, in simple English (English is not my first language).
 10. Do not start or stop the dev servers (uvicorn, npm run dev). I run them in my own
     terminals. You may run tests and builds (pytest, npm run build).
+11. Admin dashboard (`/api/admin/*`) is read-only: never write to the database from
+    `admin.py`. The admin password lives only in `backend/.env` as `ADMIN_PASSWORD`; if
+    it is missing, every admin endpoint (including login) must return 503, not a
+    misleading 401. Never return `date_of_birth` or a full/unmasked phone number from
+    any admin endpoint.
 
 ## Environment and commands (Windows, cmd)
 Backend (from `backend/`, venv folder is `myenv`):
@@ -63,6 +70,24 @@ Frontend (from `frontend/`):
 - `invoice_url` is a relative path (e.g. `/invoices/INV-0004.pdf`); the frontend must prefix it with `VITE_API_URL` before using it
 - `conversation_ended` is true when the patient said goodbye (the summary is then saved to Excel)
 - Unknown session_id -> 404. Empty message -> 422.
+
+## Admin API contract (`/api/admin/*`, all require `Authorization: Bearer <token>` except /login)
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | /api/admin/login | {password} | {token, expires_in_hours} |
+| POST | /api/admin/logout | – | {ok} |
+| GET | /api/admin/summary | – | {total_conversations, booked_conversations, conversion_rate, todays_appointments, total_revenue_lkr, upcoming_appointments} |
+| GET | /api/admin/appointments | – | [{appointment_id, patient_name, phone_masked, doctor, speciality, date, time, status, reason, invoice_no, invoice_url}] |
+| GET | /api/admin/conversations | – | rows from reports/conversations.xlsx (phone masked) |
+| GET | /api/admin/doctors | – | [{doctor, speciality, fee, working_days, free_slots, booked_slots}] |
+| GET | /api/admin/report.xlsx | – | the Excel file (binary) |
+
+- Tokens are random (`secrets.token_urlsafe`), stored in memory only, expire after 8 hours, and
+  are cleared on server restart or `/logout`.
+- If `ADMIN_PASSWORD` is unset in `.env`, ALL admin endpoints (including `/login`) return 503
+  "Admin is not configured" instead of 401 - this avoids hinting that a password exists.
+- Phone numbers are masked server-side (e.g. `071****678`) before leaving the backend; the
+  full number is never sent to the admin frontend.
 
 ## Design system (frontend)
 Palette:

@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from app import admin
 from app.agent import is_goodbye, run_turn
 from app.api_models import (
     BookingOut,
@@ -100,6 +101,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(admin.router)
 
 
 @app.get("/api/health", response_model=HealthResponse)

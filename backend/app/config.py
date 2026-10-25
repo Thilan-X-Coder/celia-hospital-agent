@@ -17,3 +17,7 @@ LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 # Fail early with a clear message instead of a confusing error later
 if not LLM_API_KEY:
     raise RuntimeError("LLM_API_KEY is missing. Add your Hugging Face token to backend/.env")
+
+# Admin dashboard password. Unlike LLM_API_KEY, a missing value must NOT crash the app -
+# it only disables the /api/admin/* endpoints (they return 503, see app/admin.py).
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
